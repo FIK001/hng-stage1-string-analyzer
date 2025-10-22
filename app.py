@@ -8,11 +8,9 @@ app = FastAPI(title="String Analyzer API - FIK001")
 # In-memory database
 database = {}
 
-
 # ====== MODELS ======
 class StringRequest(BaseModel):
     value: str
-
 
 # ====== UTILITIES ======
 def analyze_string(value: str):
@@ -37,9 +35,7 @@ def analyze_string(value: str):
         "character_frequency_map": freq_map,
     }
 
-
 # ====== ROUTES ======
-
 @app.post("/strings", status_code=201)
 def create_string(request: StringRequest):
     if not request.value or not isinstance(request.value, str):
@@ -60,7 +56,6 @@ def create_string(request: StringRequest):
     database[sha_hash] = entry
     return entry
 
-
 @app.get("/strings/{string_value}")
 def get_string(string_value: str):
     """Fetch a specific string analysis by value."""
@@ -68,7 +63,6 @@ def get_string(string_value: str):
     if sha_hash not in database:
         raise HTTPException(status_code=404, detail="String not found")
     return database[sha_hash]
-
 
 @app.get("/strings")
 def list_strings(
@@ -105,7 +99,6 @@ def list_strings(
         },
     }
 
-
 @app.get("/strings/filter-by-natural-language")
 def filter_by_natural_language(query: str = Query(..., description="Natural language query")):
     """Very simple natural language filter parser."""
@@ -132,14 +125,13 @@ def filter_by_natural_language(query: str = Query(..., description="Natural lang
     if not parsed_filters:
         raise HTTPException(status_code=400, detail="Unable to parse natural language query")
 
-    # Apply the same filters as /strings
-    return list_strings(**parsed_filters) | {
-        "interpreted_query": {
-            "original": query,
-            "parsed_filters": parsed_filters,
-        }
+    # Apply filters and safely add interpreted_query
+    results = list_strings(**parsed_filters)
+    results["interpreted_query"] = {
+        "original": query,
+        "parsed_filters": parsed_filters,
     }
-
+    return results
 
 @app.delete("/strings/{string_value}", status_code=204)
 def delete_string(string_value: str):
@@ -149,7 +141,6 @@ def delete_string(string_value: str):
         raise HTTPException(status_code=404, detail="String not found")
     del database[sha_hash]
     return None
-
 
 @app.get("/")
 def root():
